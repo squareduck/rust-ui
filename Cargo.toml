@@ -1,0 +1,7 @@
+[package]
+name = "cinnabar"
+version = "0.1.0"
+authors = ["squareduck <danvelduck@gmail.com>"]
+
+[dependencies]
+uuid = { version = "0.6", features = ["v4"] }
