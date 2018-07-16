@@ -1,13 +1,88 @@
 use super::*;
+use event::Handlers;
 use std::fmt;
+use std::sync::Arc;
 
-impl<'node, A> fmt::Display for StaticNode<'node, A> {
+pub type ChildList<A> = Vec<CachedNode<A>>;
+
+pub struct Container<A> {
+    name: Arc<Tag>,
+    key: Arc<Key>,
+    classes: Arc<ClassList>,
+    attributes: Arc<AttributeMap>,
+    handlers: Arc<Handlers<A>>,
+    children: ChildList<A>,
+}
+
+pub struct Item<A> {
+    name: Arc<Tag>,
+    key: Arc<Key>,
+    classes: Arc<ClassList>,
+    attributes: Arc<AttributeMap>,
+    handlers: Arc<Handlers<A>>,
+}
+
+pub struct Text<A> {
+    content: Arc<TextContent>,
+    handlers: Arc<Handlers<A>>,
+}
+
+pub enum CachedNode<A> {
+    Container(Container<A>),
+    Item(Item<A>),
+    Text(Text<A>),
+}
+
+impl<A> CachedNode<A> {
+    pub fn container(
+        name: Arc<Tag>,
+        key: Arc<Key>,
+        classes: Arc<ClassList>,
+        attributes: Arc<AttributeMap>,
+        handlers: Arc<Handlers<A>>,
+        children: ChildList<A>,
+    ) -> CachedNode<A> {
+        CachedNode::Container(Container {
+            name: name,
+            key: key,
+            classes: classes,
+            attributes: attributes,
+            handlers: handlers,
+            children: children,
+        })
+    }
+
+    pub fn item(
+        name: Arc<Tag>,
+        key: Arc<Key>,
+        classes: Arc<ClassList>,
+        attributes: Arc<AttributeMap>,
+        handlers: Arc<Handlers<A>>,
+    ) -> CachedNode<A> {
+        CachedNode::Item(Item {
+            name: name,
+            key: key,
+            classes: classes,
+            attributes: attributes,
+            handlers: handlers,
+        })
+    }
+
+    pub fn text(content: Arc<TextContent>, handlers: Arc<Handlers<A>>) -> CachedNode<A> {
+        CachedNode::Text(Text {
+            content: content,
+            handlers: handlers,
+        })
+    }
+}
+
+impl<A> fmt::Display for CachedNode<A> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         format_with_indent(f, None, self)
     }
 }
 
-impl<'node, A> fmt::Debug for StaticNode<'node, A> {
+impl<A> fmt::Debug for CachedNode<A> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         format_with_indent(f, Some(0), self)
     }
@@ -70,7 +145,7 @@ fn add_indent(f: &mut fmt::Formatter, indent: Option<usize>) -> fmt::Result {
 pub fn format_with_indent<A>(
     f: &mut fmt::Formatter,
     indent: Option<usize>,
-    node: &StaticNode<A>,
+    node: &CachedNode<A>,
 ) -> fmt::Result {
     let should_indent = match indent {
         Some(_) => true,
@@ -78,9 +153,9 @@ pub fn format_with_indent<A>(
     };
 
     match node {
-        StaticNode::Container(node) => {
+        CachedNode::Container(node) => {
             add_indent(f, indent)?;
-            format_opening_tag(f, node.name, node.key, node.classes, node.attributes)?;
+            format_opening_tag(f, &node.name, &node.key, &node.classes, &node.attributes)?;
 
             if node.children.len() > 0 {
                 for child in node.children.iter() {
@@ -104,13 +179,13 @@ pub fn format_with_indent<A>(
                 }
             }
 
-            format_closing_tag(f, node.name)
+            format_closing_tag(f, &node.name)
         }
-        StaticNode::Item(node) => {
+        CachedNode::Item(node) => {
             add_indent(f, indent)?;
-            format_opening_tag(f, node.name, node.key, node.classes, node.attributes)
+            format_opening_tag(f, &node.name, &node.key, &node.classes, &node.attributes)
         }
-        StaticNode::Text(node) => {
+        CachedNode::Text(node) => {
             add_indent(f, indent)?;
             write!(f, "{}", &node.content)
         }

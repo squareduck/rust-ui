@@ -4,10 +4,11 @@ extern crate pretty_assertions;
 
 extern crate uuid;
 
-pub mod dynamic_node;
+mod component;
 mod engine;
 mod event;
-mod static_node;
+pub mod node;
 mod types;
 
-pub use dynamic_node::builder::Builder;
+pub use component::Component;
+pub use node::builder::Builder;

@@ -1,7 +1,10 @@
 use super::*;
 
+use component::Component;
 use event::ClickHandler;
 use event::Handlers;
+use node::dynamic::{ComponentRef, Container, Item, Text};
+use std::sync::Arc;
 
 // TODO: Stricter API for nodes?
 // Have distinct enum variant for each possible node type.
@@ -18,16 +21,28 @@ use event::Handlers;
 // Control
 // Input
 
-pub struct ContainerBuilder<'node, S, M, A>
+pub struct ComponentBuilder<'cpt, S, M, A>
 where
-    A: 'node,
+    S: 'cpt,
+    M: 'cpt,
+    A: 'cpt,
+{
+    component: Arc<Component<'cpt, S, M, A>>,
+    message: Option<M>,
+}
+
+pub struct ContainerBuilder<'cpt, S, M, A>
+where
+    S: 'cpt,
+    M: 'cpt,
+    A: 'cpt,
 {
     name: Tag,
     key: Key,
     classes: ClassList,
     attributes: AttributeMap,
     handlers: Handlers<A>,
-    children: ChildList<'node, S, M, A>,
+    children: ChildList<'cpt, S, M, A>,
 }
 
 pub struct ItemBuilder<A> {
@@ -43,19 +58,29 @@ pub struct TextBuilder<A> {
     handlers: Handlers<A>,
 }
 
-pub enum Builder<'node, S, M, A>
+pub enum Builder<'cpt, S, M, A>
 where
-    A: 'node,
+    S: 'cpt,
+    M: 'cpt,
+    A: 'cpt,
 {
-    Component(Template<'node, S, M, A>, Option<M>),
-    Container(ContainerBuilder<'node, S, M, A>),
+    Component(ComponentBuilder<'cpt, S, M, A>),
+    Container(ContainerBuilder<'cpt, S, M, A>),
     Item(ItemBuilder<A>),
     Text(TextBuilder<A>),
 }
 
-impl<'node, S, M, A> Builder<'node, S, M, A> {
-    pub fn component(template: Template<'node, S, M, A>) -> Self {
-        Builder::Component(template, None)
+impl<'cpt, S, M, A> Builder<'cpt, S, M, A>
+where
+    S: 'cpt,
+    M: 'cpt,
+    A: 'cpt,
+{
+    pub fn component(component_ref: Arc<Component<'cpt, S, M, A>>) -> Self {
+        Builder::Component(ComponentBuilder {
+            component: component_ref,
+            message: None,
+        })
     }
 
     pub fn container<T: Into<Tag>>(name: T) -> Self {
@@ -139,7 +164,7 @@ impl<'node, S, M, A> Builder<'node, S, M, A> {
 
     pub fn on_click<H>(mut self, handler: H) -> Self
     where
-        H: ClickHandler<A>,
+        H: 'static + ClickHandler<A>,
     {
         match self {
             Builder::Container(ref mut container) => container.handlers.click(handler),
@@ -149,10 +174,7 @@ impl<'node, S, M, A> Builder<'node, S, M, A> {
         self
     }
 
-    pub fn child(mut self, node: Builder<'node, S, M, A>) -> Self
-    where
-        A: 'node,
-    {
+    pub fn child(mut self, node: Builder<'cpt, S, M, A>) -> Self {
         match self {
             Builder::Container(ref mut container) => {
                 container.children.push(node.done());
@@ -162,31 +184,27 @@ impl<'node, S, M, A> Builder<'node, S, M, A> {
         self
     }
 
-    pub fn done(self) -> DynamicNode<'node, S, M, A>
-    where
-        A: 'node,
-    {
+    pub fn done(self) -> DynamicNode<'cpt, S, M, A> {
         match self {
-            Builder::Component(template, message) => DynamicNode::Component(template, message),
-            Builder::Container(builder) => DynamicNode::Container(Container {
-                name: builder.name,
-                key: builder.key,
-                classes: builder.classes,
-                attributes: builder.attributes,
-                handlers: builder.handlers,
-                children: builder.children,
-            }),
-            Builder::Item(builder) => DynamicNode::Item(Item {
-                name: builder.name,
-                key: builder.key,
-                classes: builder.classes,
-                attributes: builder.attributes,
-                handlers: builder.handlers,
-            }),
-            Builder::Text(builder) => DynamicNode::Text(Text {
-                content: builder.content,
-                handlers: builder.handlers,
-            }),
+            Builder::Component(builder) => {
+                DynamicNode::component(builder.component, builder.message)
+            }
+            Builder::Container(builder) => DynamicNode::container(
+                builder.name,
+                builder.key,
+                builder.classes,
+                builder.attributes,
+                builder.handlers,
+                builder.children,
+            ),
+            Builder::Item(builder) => DynamicNode::item(
+                builder.name,
+                builder.key,
+                builder.classes,
+                builder.attributes,
+                builder.handlers,
+            ),
+            Builder::Text(builder) => DynamicNode::text(builder.content, builder.handlers),
         }
     }
 }

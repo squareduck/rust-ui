@@ -1,9 +1,7 @@
-// TODO: Rethink event system
-// Should host trigger events?
-// Sholud they be wrapped into closures/functions and stored in VNode?
+use std::sync::Arc;
 
 pub struct Handlers<A> {
-    pub click: Option<Box<ClickHandler<A, Output = A>>>,
+    pub click: Option<Arc<ClickHandler<A, Output = A>>>,
 }
 
 impl<A> Handlers<A> {
@@ -13,11 +11,11 @@ impl<A> Handlers<A> {
 
     pub fn click<H>(&mut self, handler: H)
     where
-        H: ClickHandler<A>,
+        H: 'static + ClickHandler<A>,
     {
-        self.click = Some(Box::new(handler));
+        self.click = Some(Arc::new(handler));
     }
 }
 
 pub struct ClickEvent {}
-pub trait ClickHandler<A>: 'static + Fn(ClickEvent) -> A {}
+pub trait ClickHandler<A>: Fn(ClickEvent) -> A {}
