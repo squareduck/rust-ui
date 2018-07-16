@@ -1,6 +1,18 @@
 use super::*;
 use std::fmt;
 
+impl<'node, A> fmt::Display for StaticNode<'node, A> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        format_with_indent(f, None, self)
+    }
+}
+
+impl<'node, A> fmt::Debug for StaticNode<'node, A> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        format_with_indent(f, Some(0), self)
+    }
+}
+
 fn format_opening_tag(
     f: &mut fmt::Formatter,
     name: &Tag,
@@ -60,6 +72,11 @@ pub fn format_with_indent<A>(
     indent: Option<usize>,
     node: &StaticNode<A>,
 ) -> fmt::Result {
+    let should_indent = match indent {
+        Some(_) => true,
+        None => false,
+    };
+
     match node {
         StaticNode::Container(node) => {
             add_indent(f, indent)?;
@@ -67,7 +84,9 @@ pub fn format_with_indent<A>(
 
             if node.children.len() > 0 {
                 for child in node.children.iter() {
-                    write!(f, "\n")?;
+                    if should_indent {
+                        write!(f, "\n")?;
+                    }
                     format_with_indent(
                         f,
                         if let Some(indent) = indent {
@@ -78,10 +97,13 @@ pub fn format_with_indent<A>(
                         &child,
                     )?;
                 }
-                write!(f, "\n")?;
+
+                if should_indent {
+                    write!(f, "\n")?;
+                    add_indent(f, indent)?;
+                }
             }
 
-            add_indent(f, indent)?;
             format_closing_tag(f, node.name)
         }
         StaticNode::Item(node) => {

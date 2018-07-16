@@ -1,4 +1,4 @@
-use dynamic_node::{AttributeMap, ClassList, Content, Key, Tag};
+use dynamic_node::{AttributeMap, ClassList, Key, Tag, TextContent};
 use event::Handlers;
 
 mod format;
@@ -47,7 +47,7 @@ impl<'node, A> StaticNode<'node, A> {
         })
     }
 
-    pub fn text(content: &'node Content, handlers: &'node Handlers<A>) -> StaticNode<'node, A> {
+    pub fn text(content: &'node TextContent, handlers: &'node Handlers<A>) -> StaticNode<'node, A> {
         StaticNode::Text(Text {
             content: content,
             handlers: handlers,
@@ -84,6 +84,6 @@ pub struct Text<'node, A>
 where
     A: 'node,
 {
-    content: &'node Content,
+    content: &'node TextContent,
     handlers: &'node Handlers<A>,
 }

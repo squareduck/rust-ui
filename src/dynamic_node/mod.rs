@@ -3,7 +3,7 @@ use static_node::StaticNode;
 use std::collections::{HashMap, HashSet};
 use types::CowString;
 
-mod builder;
+pub mod builder;
 
 pub type Template<'node, S, M, A> = fn(&S, &Option<M>) -> StaticNode<'node, A>;
 
@@ -25,7 +25,7 @@ where
 }
 
 impl<'node, S, M, A> DynamicNode<'node, S, M, A> {
-    fn render(&self, store: &S) -> StaticNode<A> {
+    pub fn render(&self, store: &S) -> StaticNode<A> {
         match self {
             DynamicNode::Component(template, message) => template(store, message),
             DynamicNode::Container(node) => StaticNode::container(
@@ -54,7 +54,7 @@ impl<'node, S, M, A> DynamicNode<'node, S, M, A> {
 pub type Tag = CowString;
 pub type KeyValue = CowString;
 pub type Key = Option<CowString>;
-pub type Content = CowString;
+pub type TextContent = CowString;
 pub type Class = CowString;
 pub type ClassList = HashSet<Class>;
 pub type AttributeName = CowString;
@@ -62,7 +62,7 @@ pub type AttributeValue = CowString;
 pub type AttributeMap = HashMap<AttributeName, AttributeValue>;
 pub type ChildList<'node, S, M, A> = Vec<DynamicNode<'node, S, M, A>>;
 
-struct Container<'node, S, M, A>
+pub struct Container<'node, S, M, A>
 where
     A: 'node,
 {
@@ -74,7 +74,7 @@ where
     children: ChildList<'node, S, M, A>,
 }
 
-struct Item<A> {
+pub struct Item<A> {
     name: Tag,
     key: Key,
     classes: ClassList,
@@ -82,7 +82,7 @@ struct Item<A> {
     handlers: Handlers<A>,
 }
 
-struct Text<A> {
-    content: Content,
+pub struct Text<A> {
+    content: TextContent,
     handlers: Handlers<A>,
 }

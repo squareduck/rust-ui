@@ -3,6 +3,21 @@ use super::*;
 use event::ClickHandler;
 use event::Handlers;
 
+// TODO: Stricter API for nodes?
+// Have distinct enum variant for each possible node type.
+// Each variant describes standard attributes it supports.
+//
+// Example:
+// Button
+// Panel
+// Label
+//
+// Or have a few general categories such as:
+// Area
+// Layout
+// Control
+// Input
+
 pub struct ContainerBuilder<'node, S, M, A>
 where
     A: 'node,
@@ -24,7 +39,7 @@ pub struct ItemBuilder<A> {
 }
 
 pub struct TextBuilder<A> {
-    content: Content,
+    content: TextContent,
     handlers: Handlers<A>,
 }
 
@@ -60,6 +75,13 @@ impl<'node, S, M, A> Builder<'node, S, M, A> {
             key: None,
             classes: ClassList::new(),
             attributes: AttributeMap::new(),
+            handlers: Handlers::new(),
+        })
+    }
+
+    pub fn text<T: Into<TextContent>>(content: T) -> Self {
+        Builder::Text(TextBuilder {
+            content: content.into(),
             handlers: Handlers::new(),
         })
     }

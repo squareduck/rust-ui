@@ -5,3 +5,5 @@ authors = ["squareduck <danvelduck@gmail.com>"]
 
 [dependencies]
 uuid = { version = "0.6", features = ["v4"] }
+[dev-dependencies]
+pretty_assertions = "0.5.1"
