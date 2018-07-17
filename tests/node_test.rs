@@ -3,9 +3,9 @@ extern crate pretty_assertions;
 
 extern crate cinnabar;
 
-use cinnabar::node::TextContent;
+use cinnabar::template;
+use cinnabar::vnode::TextContent;
 use cinnabar::Builder;
-use cinnabar::Component;
 
 struct Store {
     points: usize,
@@ -14,15 +14,15 @@ struct Store {
 enum Message {}
 enum Action {}
 
-fn panel<'node>() -> Builder<'node, Store, Message, Action> {
+fn panel() -> Builder<Store, Message, Action> {
     Builder::container("panel")
 }
 
-fn button<'node>() -> Builder<'node, Store, Message, Action> {
+fn button() -> Builder<Store, Message, Action> {
     Builder::container("button")
 }
 
-fn text<'node, T: Into<TextContent>>(content: T) -> Builder<'node, Store, Message, Action> {
+fn text<T: Into<TextContent>>(content: T) -> Builder<Store, Message, Action> {
     Builder::text(content.into())
 }
 
@@ -59,12 +59,12 @@ fn simple_node() {
 fn dynamic_node() {
     let mut store = Store { points: 0 };
 
-    let counter_cpt = Component::new(|store: &Store, message| {
+    let counter = template(|store: &Store, message| {
         let p = format!("{}", store.points);
         text(p).done()
     });
 
-    let dn = panel().child(Builder::component(counter_cpt)).done();
+    let dn = panel().child(Builder::template(counter)).done();
 
     let sn = dn.render(&store);
 
