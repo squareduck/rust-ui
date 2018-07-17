@@ -34,6 +34,49 @@ pub struct Item<A> {
     handlers: Handlers<A>,
 }
 
+impl<A> Item<A> {
+    fn key(&self) -> Option<&str> {
+        match self.key {
+            Some(ref key) => Some(key),
+            None => None,
+        }
+    }
+
+    fn has_key(&self) -> bool {
+        match self.key {
+            Some(ref key) => true,
+            None => false,
+        }
+    }
+
+    fn classes(&self) -> &Classes {
+        &self.classes
+    }
+
+    fn has_class<T: Into<Class>>(&self, class: T) -> bool {
+        self.classes.contains(&class.into())
+    }
+
+    fn attributes(&self) -> &Attributes {
+        &self.attributes
+    }
+
+    fn has_attr<T: Into<AttrName>>(&self, name: T) -> bool {
+        self.attributes.contains_key(&name.into())
+    }
+
+    fn attr<T: Into<AttrName>>(&self, name: T) -> Option<&str> {
+        match self.attributes.get(&name.into()) {
+            Some(value) => Some(&value),
+            None => None,
+        }
+    }
+
+    fn handlers(&self) -> &Handlers<A> {
+        &self.handlers
+    }
+}
+
 pub type Children<S, M, A> = Vec<DynamicNode<S, M, A>>;
 
 pub enum DynamicNode<S, M, A> {
@@ -70,6 +113,81 @@ pub enum StaticNode<A> {
     Text(SharedText<A>),
     Item(SharedItem<A>),
     Container(SharedItem<A>, StaticChildren<A>),
+}
+
+impl<A> StaticNode<A> {
+    fn name(&self) -> &str {
+        match self {
+            StaticNode::Item(node) => &node.name,
+            StaticNode::Container(node, _) => &node.name,
+            _ => panic!("Only Container and Item nodes have name."),
+        }
+    }
+
+    fn key(&self) -> Option<&str> {
+        match self {
+            StaticNode::Item(node) => node.key(),
+            StaticNode::Container(node, _) => node.key(),
+            _ => panic!("Only Container and Item nodes have key."),
+        }
+    }
+
+    fn has_key(&self) -> bool {
+        match self {
+            StaticNode::Item(node) => node.has_key(),
+            StaticNode::Container(node, _) => node.has_key(),
+            _ => false,
+        }
+    }
+
+    fn classes(&self) -> &Classes {
+        match self {
+            StaticNode::Item(node) => node.classes(),
+            StaticNode::Container(node, _) => node.classes(),
+            _ => panic!("Only Container and Item nodes have classes."),
+        }
+    }
+
+    fn has_class<T: Into<Class>>(&self, class: T) -> bool {
+        match self {
+            StaticNode::Item(node) => node.has_class(class),
+            StaticNode::Container(node, _) => node.has_class(class),
+            _ => panic!("Only Container and Item nodes have classes."),
+        }
+    }
+
+    fn attributes(&self) -> &Attributes {
+        match self {
+            StaticNode::Item(node) => node.attributes(),
+            StaticNode::Container(node, _) => node.attributes(),
+            _ => panic!("Only Container and Item nodes have attributes."),
+        }
+    }
+
+    fn has_attr<T: Into<AttrName>>(&self, name: T) -> bool {
+        match self {
+            StaticNode::Item(node) => node.has_attr(name),
+            StaticNode::Container(node, _) => node.has_attr(name),
+            _ => panic!("Only Container and Item nodes have attributes."),
+        }
+    }
+
+    fn attr<T: Into<AttrName>>(&self, name: T) -> Option<&str> {
+        match self {
+            StaticNode::Item(node) => node.attr(name),
+            StaticNode::Container(node, _) => node.attr(name),
+            _ => panic!("Only Container and Item nodes have attributes."),
+        }
+    }
+
+    fn handlers(&self) -> &Handlers<A> {
+        match self {
+            StaticNode::Text(node) => &node.handlers,
+            StaticNode::Item(node) => node.handlers(),
+            StaticNode::Container(node, _) => node.handlers(),
+            _ => panic!("Only Container and Item nodes have attributes."),
+        }
+    }
 }
 
 impl<A> fmt::Display for StaticNode<A> {
