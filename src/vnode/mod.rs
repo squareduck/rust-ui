@@ -58,6 +58,12 @@ impl<S, M, A> DynamicNode<S, M, A> {
     }
 }
 
+impl<S, M, A> From<SharedTemplate<S, M, A>> for DynamicNode<S, M, A> {
+    fn from(template: SharedTemplate<S, M, A>) -> Self {
+        DynamicNode::Template(template, None)
+    }
+}
+
 type StaticChildren<A> = Vec<StaticNode<A>>;
 
 pub enum StaticNode<A> {

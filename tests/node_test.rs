@@ -1,30 +1,13 @@
 #[macro_use]
 extern crate pretty_assertions;
-
 extern crate cinnabar;
 
-use cinnabar::template;
-use cinnabar::vnode::TextContent;
-use cinnabar::Builder;
+use self::helper::{button, panel, text};
+use self::helper::{Action, Message, Store};
 
-struct Store {
-    points: usize,
-}
+use cinnabar::Template;
 
-enum Message {}
-enum Action {}
-
-fn panel() -> Builder<Store, Message, Action> {
-    Builder::container("panel")
-}
-
-fn button() -> Builder<Store, Message, Action> {
-    Builder::container("button")
-}
-
-fn text<T: Into<TextContent>>(content: T) -> Builder<Store, Message, Action> {
-    Builder::text(content.into())
-}
+mod helper;
 
 #[test]
 fn simple_node() {
@@ -59,12 +42,12 @@ fn simple_node() {
 fn dynamic_node() {
     let mut store = Store { points: 0 };
 
-    let counter = template(|store: &Store, message| {
+    let counter = Template::new(|store: &Store, message| {
         let p = format!("{}", store.points);
         text(p).done()
     });
 
-    let dn = panel().child(Builder::template(counter)).done();
+    let dn = panel().child(counter.clone()).done();
 
     let sn = dn.render(&store);
 

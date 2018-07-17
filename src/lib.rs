@@ -4,12 +4,12 @@ extern crate pretty_assertions;
 
 extern crate uuid;
 
-// mod component;
-mod engine;
+mod app;
 mod event;
 mod template;
 mod types;
 pub mod vnode;
 
-pub use template::template;
+pub use app::App;
+pub use template::Template;
 pub use vnode::builder::Builder;

@@ -46,10 +46,6 @@ impl<S, M, A> Builder<S, M, A> {
         Builder::Container(item, Children::new())
     }
 
-    pub fn template(template: SharedTemplate<S, M, A>) -> Self {
-        Builder::Template(template, None)
-    }
-
     //
     // # Properties
     //
@@ -101,6 +97,17 @@ impl<S, M, A> Builder<S, M, A> {
         self
     }
 
+    pub fn message(mut self, message: M) -> Self {
+        let new_builder = match self {
+            Builder::Template(tpl, _) => Builder::Template(tpl, Some(message)),
+            _ => panic!("Only Template can have message."),
+        };
+
+        self = new_builder;
+
+        self
+    }
+
     pub fn on_click<H>(mut self, handler: H) -> Self
     where
         H: 'static + ClickHandler<A>,
@@ -114,13 +121,14 @@ impl<S, M, A> Builder<S, M, A> {
         self
     }
 
-    pub fn child(mut self, child: Builder<S, M, A>) -> Self {
+    pub fn child<T: Into<Builder<S, M, A>>>(mut self, child: T) -> Self {
         match self {
             Builder::Container(_, ref mut children) => {
-                children.push(child.done());
+                children.push(child.into().done());
             }
             _ => panic!("Only Container can have children."),
-        };
+        }
+
         self
     }
 
@@ -153,5 +161,11 @@ impl<S, M, A> Builder<S, M, A> {
             ),
             Builder::Template(template, message) => DynamicNode::Template(template, message),
         }
+    }
+}
+
+impl<S, M, A> From<SharedTemplate<S, M, A>> for Builder<S, M, A> {
+    fn from(template: SharedTemplate<S, M, A>) -> Self {
+        Builder::Template(template, None)
     }
 }
