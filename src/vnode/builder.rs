@@ -1,5 +1,7 @@
 use super::DynamicNode;
-use super::{AttrName, AttrValue, Attributes, Class, Classes, KeyValue, Name, TextContent};
+use super::{
+    AttrName, AttrValue, Attributes, Class, Classes, IdValue, KeyValue, Name, TextContent,
+};
 use super::{Children, Item, Text};
 use event::{ClickHandler, Handlers};
 use std::sync::Arc;
@@ -8,7 +10,7 @@ use template::SharedTemplate;
 pub enum Builder<S, M, A> {
     Text(Text<A>),
     Item(Item<A>),
-    Container(Item<A>, Children<S, M, A>),
+    Container(Item<A>, Box<Children<S, M, A>>),
     Template(SharedTemplate<S, M, A>, Option<M>),
 }
 
@@ -26,6 +28,7 @@ impl<S, M, A> Builder<S, M, A> {
 
     pub fn item<T: Into<Name>>(name: T) -> Self {
         Builder::Item(Item {
+            id: None,
             name: name.into(),
             key: None,
             classes: Classes::new(),
@@ -36,6 +39,7 @@ impl<S, M, A> Builder<S, M, A> {
 
     pub fn container<T: Into<Name>>(name: T) -> Self {
         let item = Item {
+            id: None,
             name: name.into(),
             key: None,
             classes: Classes::new(),
@@ -43,12 +47,22 @@ impl<S, M, A> Builder<S, M, A> {
             handlers: Handlers::new(),
         };
 
-        Builder::Container(item, Children::new())
+        Builder::Container(item, Box::new(Children::new()))
     }
 
     //
     // # Properties
     //
+    pub fn id<T: Into<IdValue>>(mut self, id: T) -> Self {
+        match self {
+            Builder::Container(ref mut item, _) => {
+                item.id = Some(id.into());
+            }
+            Builder::Item(ref mut item) => item.id = Some(id.into()),
+            _ => panic!("Only Container and Item can have a key."),
+        }
+        self
+    }
 
     pub fn key<T: Into<KeyValue>>(mut self, key: T) -> Self {
         match self {
@@ -143,6 +157,7 @@ impl<S, M, A> Builder<S, M, A> {
                 handlers: text.handlers,
             })),
             Builder::Item(item) => DynamicNode::Item(Arc::new(Item {
+                id: item.id,
                 name: item.name,
                 key: item.key,
                 classes: item.classes,
@@ -151,6 +166,7 @@ impl<S, M, A> Builder<S, M, A> {
             })),
             Builder::Container(item, children) => DynamicNode::Container(
                 Arc::new(Item {
+                    id: item.id,
                     name: item.name,
                     key: item.key,
                     classes: item.classes,

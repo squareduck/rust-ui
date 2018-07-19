@@ -13,6 +13,8 @@ pub type TextContent = CowString;
 pub type Name = CowString;
 pub type KeyValue = CowString;
 pub type Key = Option<KeyValue>;
+pub type IdValue = CowString;
+pub type Id = Option<CowString>;
 pub type Class = CowString;
 pub type Classes = HashSet<Class>;
 pub type AttrName = CowString;
@@ -27,6 +29,7 @@ pub struct Text<A> {
 
 pub type SharedItem<A> = Arc<Item<A>>;
 pub struct Item<A> {
+    id: Id,
     name: Name,
     key: Key,
     classes: Classes,
@@ -35,16 +38,30 @@ pub struct Item<A> {
 }
 
 impl<A> Item<A> {
+    fn id(&self) -> Option<&str> {
+        match self.id.as_ref() {
+            Some(id) => Some(id),
+            None => None,
+        }
+    }
+
+    fn has_id(&self) -> bool {
+        match self.id {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
     fn key(&self) -> Option<&str> {
-        match self.key {
-            Some(ref key) => Some(key),
+        match self.key.as_ref() {
+            Some(key) => Some(key),
             None => None,
         }
     }
 
     fn has_key(&self) -> bool {
         match self.key {
-            Some(ref key) => true,
+            Some(_) => true,
             None => false,
         }
     }
@@ -82,7 +99,7 @@ pub type Children<S, M, A> = Vec<DynamicNode<S, M, A>>;
 pub enum DynamicNode<S, M, A> {
     Text(SharedText<A>),
     Item(SharedItem<A>),
-    Container(SharedItem<A>, Children<S, M, A>),
+    Container(SharedItem<A>, Box<Children<S, M, A>>),
     Template(SharedTemplate<S, M, A>, Option<M>),
 }
 
@@ -116,7 +133,23 @@ pub enum StaticNode<A> {
 }
 
 impl<A> StaticNode<A> {
-    fn name(&self) -> &str {
+    pub fn id(&self) -> Option<&str> {
+        match self {
+            StaticNode::Item(node) => node.id(),
+            StaticNode::Container(node, _) => node.id(),
+            _ => panic!("Only Container and Item nodes have id."),
+        }
+    }
+
+    pub fn has_id(&self) -> bool {
+        match self {
+            StaticNode::Item(node) => node.has_id(),
+            StaticNode::Container(node, _) => node.has_id(),
+            _ => false,
+        }
+    }
+
+    pub fn name(&self) -> &str {
         match self {
             StaticNode::Item(node) => &node.name,
             StaticNode::Container(node, _) => &node.name,
@@ -124,7 +157,7 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn key(&self) -> Option<&str> {
+    pub fn key(&self) -> Option<&str> {
         match self {
             StaticNode::Item(node) => node.key(),
             StaticNode::Container(node, _) => node.key(),
@@ -132,7 +165,7 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn has_key(&self) -> bool {
+    pub fn has_key(&self) -> bool {
         match self {
             StaticNode::Item(node) => node.has_key(),
             StaticNode::Container(node, _) => node.has_key(),
@@ -140,7 +173,7 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn classes(&self) -> &Classes {
+    pub fn classes(&self) -> &Classes {
         match self {
             StaticNode::Item(node) => node.classes(),
             StaticNode::Container(node, _) => node.classes(),
@@ -148,7 +181,7 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn has_class<T: Into<Class>>(&self, class: T) -> bool {
+    pub fn has_class<T: Into<Class>>(&self, class: T) -> bool {
         match self {
             StaticNode::Item(node) => node.has_class(class),
             StaticNode::Container(node, _) => node.has_class(class),
@@ -156,7 +189,7 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn attributes(&self) -> &Attributes {
+    pub fn attributes(&self) -> &Attributes {
         match self {
             StaticNode::Item(node) => node.attributes(),
             StaticNode::Container(node, _) => node.attributes(),
@@ -164,7 +197,7 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn has_attr<T: Into<AttrName>>(&self, name: T) -> bool {
+    pub fn has_attr<T: Into<AttrName>>(&self, name: T) -> bool {
         match self {
             StaticNode::Item(node) => node.has_attr(name),
             StaticNode::Container(node, _) => node.has_attr(name),
@@ -172,7 +205,7 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn attr<T: Into<AttrName>>(&self, name: T) -> Option<&str> {
+    pub fn attr<T: Into<AttrName>>(&self, name: T) -> Option<&str> {
         match self {
             StaticNode::Item(node) => node.attr(name),
             StaticNode::Container(node, _) => node.attr(name),
@@ -180,12 +213,11 @@ impl<A> StaticNode<A> {
         }
     }
 
-    fn handlers(&self) -> &Handlers<A> {
+    pub fn handlers(&self) -> &Handlers<A> {
         match self {
             StaticNode::Text(node) => &node.handlers,
             StaticNode::Item(node) => node.handlers(),
             StaticNode::Container(node, _) => node.handlers(),
-            _ => panic!("Only Container and Item nodes have attributes."),
         }
     }
 }

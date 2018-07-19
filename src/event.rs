@@ -4,6 +4,12 @@ pub struct Handlers<A> {
     pub click: Option<Arc<ClickHandler<A, Output = A>>>,
 }
 
+impl<A> Default for Handlers<A> {
+    fn default() -> Handlers<A> {
+        Handlers::new()
+    }
+}
+
 impl<A> Handlers<A> {
     pub fn new() -> Self {
         Handlers { click: None }

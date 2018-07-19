@@ -1,27 +1,32 @@
 use super::StaticNode;
-use super::{Attributes, Classes, Key, Name};
+use super::{Attributes, Classes, Id, Key, Name};
 use std::fmt;
 
 fn format_opening_tag(
     f: &mut fmt::Formatter,
     name: &Name,
+    id: &Id,
     key: &Key,
     classes: &Classes,
     attributes: &Attributes,
 ) -> fmt::Result {
     write!(f, "<{}", name)?;
 
+    if let Some(id) = id {
+        write!(f, " id=\"{}\"", id)?;
+    };
+
     if let Some(key) = key {
         write!(f, " key=\"{}\"", key)?;
     };
 
-    if classes.len() > 0 {
+    if !classes.is_empty() {
         let mut class_list: Vec<&str> = classes.iter().map(|s| s.as_ref()).collect();
         class_list.sort();
         write!(f, " class=\"{}\"", class_list.join(" "))?;
     }
 
-    if attributes.len() > 0 {
+    if !attributes.is_empty() {
         let mut attr_list: Vec<(&str, &str)> = attributes
             .iter()
             .map(|(n, v)| (n.as_ref(), v.as_ref()))
@@ -31,7 +36,7 @@ fn format_opening_tag(
 
         for (name, value) in attr_list {
             write!(f, " {}", name)?;
-            if value.len() > 0 {
+            if !value.is_empty() {
                 write!(f, "=\"{}\"", value)?;
             }
         }
@@ -69,12 +74,19 @@ pub fn format_with_indent<A>(
     match node {
         StaticNode::Container(item, children) => {
             add_indent(f, indent)?;
-            format_opening_tag(f, &item.name, &item.key, &item.classes, &item.attributes)?;
+            format_opening_tag(
+                f,
+                &item.name,
+                &item.id,
+                &item.key,
+                &item.classes,
+                &item.attributes,
+            )?;
 
-            if children.len() > 0 {
+            if !children.is_empty() {
                 for child in children.iter() {
                     if should_indent {
-                        write!(f, "\n")?;
+                        writeln!(f)?;
                     }
                     format_with_indent(
                         f,
@@ -88,7 +100,7 @@ pub fn format_with_indent<A>(
                 }
 
                 if should_indent {
-                    write!(f, "\n")?;
+                    writeln!(f)?;
                     add_indent(f, indent)?;
                 }
             }
@@ -97,7 +109,14 @@ pub fn format_with_indent<A>(
         }
         StaticNode::Item(item) => {
             add_indent(f, indent)?;
-            format_opening_tag(f, &item.name, &item.key, &item.classes, &item.attributes)
+            format_opening_tag(
+                f,
+                &item.name,
+                &item.id,
+                &item.key,
+                &item.classes,
+                &item.attributes,
+            )
         }
         StaticNode::Text(text) => {
             add_indent(f, indent)?;

@@ -18,10 +18,10 @@ impl<S, M, A> App<S, M, A> {
         let last_render = dynamic_node.render(&store);
 
         App {
-            store: store,
+            store,
             vnode: dynamic_node,
             reducer: Box::new(reducer),
-            last_render: last_render,
+            last_render,
         }
     }
 
