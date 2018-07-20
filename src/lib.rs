@@ -5,6 +5,7 @@ extern crate pretty_assertions;
 mod app;
 mod event;
 mod layout;
+mod render;
 mod style;
 mod template;
 mod types;

@@ -28,6 +28,16 @@ pub struct Text<A> {
     handlers: Handlers<A>,
 }
 
+impl<A> Text<A> {
+    pub fn content(&self) -> &str {
+        &self.content
+    }
+
+    pub fn handlers(&self) -> &Handlers<A> {
+        &self.handlers
+    }
+}
+
 pub struct Item<A> {
     id: Id,
     name: Name,
