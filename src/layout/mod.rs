@@ -22,9 +22,8 @@ pub enum Size {
 }
 
 pub enum Align {
+    None,
     Center,
-    Vertical,
-    Horizontal,
     Left,
     Right,
     Top,
@@ -32,6 +31,7 @@ pub enum Align {
 }
 
 pub enum Offset {
+    None,
     Up(usize),
     Down(usize),
     Left(usize),
@@ -47,13 +47,19 @@ pub enum Direction {
 }
 
 pub struct ContainerLayout {
-    position: Position,
-    size: Size,
-    align: Align,
-    offset: Offset,
     direction: Direction,
     padding: (usize, usize, usize, usize),
     spacing: (usize, usize),
+}
+
+impl Default for ContainerLayout {
+    fn default() -> ContainerLayout {
+        ContainerLayout {
+            direction: Direction::Row,
+            padding: (0, 0, 0, 0),
+            spacing: (0, 0),
+        }
+    }
 }
 
 //
@@ -64,4 +70,15 @@ pub struct ItemLayout {
     align: Align,
     offset: Offset,
     size: Size,
+}
+
+impl Default for ItemLayout {
+    fn default() -> ItemLayout {
+        ItemLayout {
+            position: Position::Auto,
+            align: Align::None,
+            offset: Offset::None,
+            size: Size::Fill,
+        }
+    }
 }

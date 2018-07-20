@@ -1,17 +1,32 @@
+use std::sync::Arc;
+
+use super::dynamic_node::DynamicChildren;
 use super::DynamicNode;
 use super::{
     AttrName, AttrValue, Attributes, Class, Classes, IdValue, KeyValue, Name, TextContent,
 };
-use super::{Children, Item, Text};
+use super::{Item, Text};
+
 use event::{ClickHandler, Handlers};
-use std::sync::Arc;
-use template::SharedTemplate;
+use layout::ContainerLayout;
+use template::Template;
+
+pub struct BuilderContainer<S, M, A> {
+    item: Item<A>,
+    children: DynamicChildren<S, M, A>,
+    layout: ContainerLayout,
+}
+
+pub struct BuilderTemplate<S, M, A> {
+    message: Option<M>,
+    template: Arc<Template<S, M, A>>,
+}
 
 pub enum Builder<S, M, A> {
     Text(Text<A>),
     Item(Item<A>),
-    Container(Item<A>, Box<Children<S, M, A>>),
-    Template(SharedTemplate<S, M, A>, Option<M>),
+    Container(BuilderContainer<S, M, A>),
+    Template(BuilderTemplate<S, M, A>),
 }
 
 impl<S, M, A> Builder<S, M, A> {
@@ -34,6 +49,7 @@ impl<S, M, A> Builder<S, M, A> {
             classes: Classes::new(),
             attributes: Attributes::new(),
             handlers: Handlers::new(),
+            layout: Default::default(),
         })
     }
 
@@ -45,46 +61,53 @@ impl<S, M, A> Builder<S, M, A> {
             classes: Classes::new(),
             attributes: Attributes::new(),
             handlers: Handlers::new(),
+            layout: Default::default(),
         };
 
-        Builder::Container(item, Box::new(Children::new()))
+        Builder::Container(BuilderContainer {
+            item,
+            children: DynamicChildren::new(),
+            layout: Default::default(),
+        })
     }
 
     //
     // # Properties
     //
+
     pub fn id<T: Into<IdValue>>(mut self, id: T) -> Self {
         match self {
-            Builder::Container(ref mut item, _) => {
-                item.id = Some(id.into());
-            }
+            Builder::Container(BuilderContainer { ref mut item, .. }) => item.id = Some(id.into()),
             Builder::Item(ref mut item) => item.id = Some(id.into()),
-            _ => panic!("Only Container and Item can have a key."),
-        }
+            Builder::Text(_) => panic!("Text builder nodes do not have item properties"),
+            Builder::Template(_) => panic!("Template builder nodes do not have item properties"),
+        };
+
         self
     }
 
     pub fn key<T: Into<KeyValue>>(mut self, key: T) -> Self {
         match self {
-            Builder::Container(ref mut item, _) => {
-                item.key = Some(key.into());
+            Builder::Container(BuilderContainer { ref mut item, .. }) => {
+                item.key = Some(key.into())
             }
             Builder::Item(ref mut item) => item.key = Some(key.into()),
-            _ => panic!("Only Container and Item can have a key."),
-        }
+            Builder::Text(_) => panic!("Text builder nodes do not have item properties"),
+            Builder::Template(_) => panic!("Template builder nodes do not have item properties"),
+        };
+
         self
     }
 
     pub fn class<T: Into<Class>>(mut self, class: T) -> Self {
         match self {
-            Builder::Container(ref mut item, _) => {
-                item.classes.insert(class.into());
+            Builder::Container(BuilderContainer { ref mut item, .. }) => {
+                item.classes.insert(class.into())
             }
-            Builder::Item(ref mut item) => {
-                item.classes.insert(class.into());
-            }
-            _ => panic!("Only Container and Item can have a class."),
-        }
+            Builder::Item(ref mut item) => item.classes.insert(class.into()),
+            Builder::Text(_) => panic!("Text builder nodes do not have item properties"),
+            Builder::Template(_) => panic!("Template builder nodes do not have item properties"),
+        };
 
         self
     }
@@ -99,25 +122,24 @@ impl<S, M, A> Builder<S, M, A> {
 
     pub fn attr<T: Into<AttrName>, P: Into<AttrValue>>(mut self, name: T, value: P) -> Self {
         match self {
-            Builder::Container(ref mut item, _) => {
+            Builder::Container(BuilderContainer { ref mut item, .. }) => {
                 item.attributes.insert(name.into(), value.into());
             }
             Builder::Item(ref mut item) => {
                 item.attributes.insert(name.into(), value.into());
             }
-            _ => panic!("Only Container and Item can have an attribute."),
-        }
+            Builder::Text(_) => panic!("Text builder nodes do not have item properties"),
+            Builder::Template(_) => panic!("Template builder nodes do not have item properties"),
+        };
 
         self
     }
 
     pub fn message(mut self, message: M) -> Self {
-        let new_builder = match self {
-            Builder::Template(tpl, _) => Builder::Template(tpl, Some(message)),
+        match self {
+            Builder::Template(ref mut template) => template.message = Some(message),
             _ => panic!("Only Template can have message."),
-        };
-
-        self = new_builder;
+        }
 
         self
     }
@@ -127,9 +149,10 @@ impl<S, M, A> Builder<S, M, A> {
         H: 'static + ClickHandler<A>,
     {
         match self {
-            Builder::Container(ref mut item, _) => item.handlers.click(handler),
+            Builder::Container(ref mut container) => container.item.handlers.click(handler),
             Builder::Item(ref mut item) => item.handlers.click(handler),
-            _ => panic!("Only Container and Item can have handlers."),
+            Builder::Text(ref mut text) => text.handlers.click(handler),
+            _ => panic!("Template nodes do not have handlers"),
         }
 
         self
@@ -137,8 +160,8 @@ impl<S, M, A> Builder<S, M, A> {
 
     pub fn child<T: Into<Builder<S, M, A>>>(mut self, child: T) -> Self {
         match self {
-            Builder::Container(_, ref mut children) => {
-                children.push(child.into().done());
+            Builder::Container(ref mut container) => {
+                container.children.push(child.into().done());
             }
             _ => panic!("Only Container can have children."),
         }
@@ -152,36 +175,25 @@ impl<S, M, A> Builder<S, M, A> {
 
     pub fn done(self) -> DynamicNode<S, M, A> {
         match self {
-            Builder::Text(text) => DynamicNode::Text(Arc::new(Text {
-                content: text.content,
-                handlers: text.handlers,
-            })),
-            Builder::Item(item) => DynamicNode::Item(Arc::new(Item {
-                id: item.id,
-                name: item.name,
-                key: item.key,
-                classes: item.classes,
-                attributes: item.attributes,
-                handlers: item.handlers,
-            })),
-            Builder::Container(item, children) => DynamicNode::Container(
-                Arc::new(Item {
-                    id: item.id,
-                    name: item.name,
-                    key: item.key,
-                    classes: item.classes,
-                    attributes: item.attributes,
-                    handlers: item.handlers,
-                }),
+            Builder::Text(text) => DynamicNode::new_text(text),
+            Builder::Item(item) => DynamicNode::new_item(item),
+            Builder::Container(BuilderContainer {
+                item,
                 children,
-            ),
-            Builder::Template(template, message) => DynamicNode::Template(template, message),
+                layout,
+            }) => DynamicNode::new_container(item, children, layout),
+            Builder::Template(BuilderTemplate { template, message }) => {
+                DynamicNode::new_template(template, message)
+            }
         }
     }
 }
 
-impl<S, M, A> From<SharedTemplate<S, M, A>> for Builder<S, M, A> {
-    fn from(template: SharedTemplate<S, M, A>) -> Self {
-        Builder::Template(template, None)
+impl<S, M, A> From<Arc<Template<S, M, A>>> for Builder<S, M, A> {
+    fn from(template: Arc<Template<S, M, A>>) -> Self {
+        Builder::Template(BuilderTemplate {
+            template,
+            message: None,
+        })
     }
 }

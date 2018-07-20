@@ -1,33 +1,26 @@
+use super::static_node::StaticItem;
 use super::StaticNode;
-use super::{Attributes, Classes, Id, Key, Name};
 use std::fmt;
 
-fn format_opening_tag(
-    f: &mut fmt::Formatter,
-    name: &Name,
-    id: &Id,
-    key: &Key,
-    classes: &Classes,
-    attributes: &Attributes,
-) -> fmt::Result {
-    write!(f, "<{}", name)?;
+fn format_opening_tag<A>(f: &mut fmt::Formatter, item: &StaticItem<A>) -> fmt::Result {
+    write!(f, "<{}", item.name())?;
 
-    if let Some(id) = id {
+    if let Some(id) = item.id() {
         write!(f, " id=\"{}\"", id)?;
     };
 
-    if let Some(key) = key {
+    if let Some(key) = item.key() {
         write!(f, " key=\"{}\"", key)?;
     };
 
-    if !classes.is_empty() {
-        let mut class_list: Vec<&str> = classes.iter().map(|s| s.as_ref()).collect();
+    if !item.classes().is_empty() {
+        let mut class_list: Vec<&str> = item.classes().iter().map(|s| s.as_ref()).collect();
         class_list.sort();
         write!(f, " class=\"{}\"", class_list.join(" "))?;
     }
 
-    if !attributes.is_empty() {
-        let mut attr_list: Vec<(&str, &str)> = attributes
+    if !item.attributes().is_empty() {
+        let mut attr_list: Vec<(&str, &str)> = item.attributes()
             .iter()
             .map(|(n, v)| (n.as_ref(), v.as_ref()))
             .collect();
@@ -45,8 +38,8 @@ fn format_opening_tag(
     write!(f, ">")
 }
 
-fn format_closing_tag(f: &mut fmt::Formatter, name: &Name) -> fmt::Result {
-    write!(f, "</{}>", name)
+fn format_closing_tag<A>(f: &mut fmt::Formatter, item: &StaticItem<A>) -> fmt::Result {
+    write!(f, "</{}>", item.name())
 }
 
 fn add_indent(f: &mut fmt::Formatter, indent: Option<usize>) -> fmt::Result {
@@ -72,19 +65,12 @@ pub fn format_with_indent<A>(
     };
 
     match node {
-        StaticNode::Container(item, children) => {
+        StaticNode::Container(container) => {
             add_indent(f, indent)?;
-            format_opening_tag(
-                f,
-                &item.name,
-                &item.id,
-                &item.key,
-                &item.classes,
-                &item.attributes,
-            )?;
+            format_opening_tag(f, container.item())?;
 
-            if !children.is_empty() {
-                for child in children.iter() {
+            if !container.children().is_empty() {
+                for child in container.children().iter() {
                     if should_indent {
                         writeln!(f)?;
                     }
@@ -105,18 +91,11 @@ pub fn format_with_indent<A>(
                 }
             }
 
-            format_closing_tag(f, &item.name)
+            format_closing_tag(f, container.item())
         }
         StaticNode::Item(item) => {
             add_indent(f, indent)?;
-            format_opening_tag(
-                f,
-                &item.name,
-                &item.id,
-                &item.key,
-                &item.classes,
-                &item.attributes,
-            )
+            format_opening_tag(f, item)
         }
         StaticNode::Text(text) => {
             add_indent(f, indent)?;
