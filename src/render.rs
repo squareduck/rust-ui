@@ -1,37 +1,29 @@
-use std::sync::Arc;
+use vnode::static_node::{StaticItem, StaticNode, StaticText};
 
-use vnode::{Item, StaticNode, Text};
+pub type Position = (u16, u16);
+pub type Size = (u16, u16);
 
-pub type Position = (usize, usize);
-pub type Size = (usize, usize);
-
-pub struct RenderText<A> {
-    text: Arc<Text<A>>,
-    position: Position,
-    size: Size,
+pub enum RenderItem<A> {
+    Text(StaticText<A>),
+    Item(StaticItem<A>),
 }
 
-pub struct RenderItem<A> {
-    item: Arc<Item<A>>,
-    position: Position,
-    size: Size,
+pub struct RenderText<A> {
+    pub position: Position,
+    pub size: Size,
+    pub node: StaticText<A>,
 }
 
 pub enum RenderCommand<A> {
     Text(RenderText<A>),
-    Item(RenderItem<A>),
 }
 
 impl<A> RenderCommand<A> {
-    fn text(
-        text: Arc<Text<A>>,
-        parent_position: Option<Position>,
-        parent_size: Option<Size>,
-    ) -> Self {
-        let position = parent_position.unwrap_or((0, 0));
-        let size = parent_size.unwrap_or((0, 0));
+    fn text(text: StaticText<A>, parent_position: Position, parent_size: Size) -> Self {
+        let position = parent_position;
+        let size = (text.content().len() as u16, 1 as u16);
         RenderCommand::Text(RenderText {
-            text,
+            node: text,
             position,
             size,
         })
@@ -41,15 +33,17 @@ impl<A> RenderCommand<A> {
 pub type RenderList<A> = Vec<RenderCommand<A>>;
 
 pub fn render_list<A>(
-    node: StaticNode<A>,
-    parent_position: Option<Position>,
-    parent_size: Option<Size>,
+    node: &StaticNode<A>,
+    parent_position: Position,
+    parent_size: Size,
 ) -> RenderList<A> {
     let mut list = RenderList::new();
     match node {
-        StaticNode::Text(text) => {
-            list.push(RenderCommand::text(text, parent_position, parent_size))
-        }
+        StaticNode::Text(text) => list.push(RenderCommand::text(
+            text.clone(),
+            parent_position,
+            (text.content().len() as u16, 1 as u16),
+        )),
         _ => panic!("Not implemented"),
     };
 

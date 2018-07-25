@@ -1,3 +1,4 @@
+use render::{render_list, Position, RenderList, Size};
 use vnode::{DynamicNode, StaticNode};
 
 pub struct App<S, M, A> {
@@ -27,6 +28,10 @@ impl<S, M, A> App<S, M, A> {
 
     pub fn view(&self) -> &StaticNode<A> {
         &self.last_render
+    }
+
+    pub fn render_list(&self, position: Position, size: Size) -> RenderList<A> {
+        render_list(&self.last_render, position, size)
     }
 
     pub fn action(mut self, action: A) -> Self {

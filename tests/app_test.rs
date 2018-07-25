@@ -1,19 +1,21 @@
 #[macro_use]
 extern crate pretty_assertions;
+#[macro_use]
 extern crate cinnabar;
 
-use self::helper::{button, panel, text};
-use self::helper::{Action, Store};
+mod helper;
+
+use self::helper::{Action, Message, Store};
 
 use cinnabar::{App, Template};
 
-mod helper;
+elements_for!(Store, Message, Action);
 
 #[test]
 fn simple_app_test() {
     let store = Store { points: 0 };
 
-    let counter = Template::new(|store: &Store, _message| {
+    let counter = Template::new(|store: &Store, _message: &Option<Message>| {
         let points = format!("{} points", store.points);
         panel()
             .child(text(points))

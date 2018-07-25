@@ -7,7 +7,7 @@ use super::{
 };
 use super::{Item, Text};
 
-use event::{ClickHandler, Handlers};
+use event::{ClickEvent, Handlers};
 use layout::ContainerLayout;
 use template::Template;
 
@@ -146,7 +146,7 @@ impl<S, M, A> Builder<S, M, A> {
 
     pub fn on_click<H>(mut self, handler: H) -> Self
     where
-        H: 'static + ClickHandler<A>,
+        H: Fn(ClickEvent) -> A + 'static,
     {
         match self {
             Builder::Container(ref mut container) => container.item.handlers.click(handler),

@@ -1,13 +1,15 @@
 #[macro_use]
 extern crate pretty_assertions;
+#[macro_use]
 extern crate cinnabar;
 
-use self::helper::{button, panel, text};
+mod helper;
+
 use self::helper::{Action, Message, Store};
 
 use cinnabar::Template;
 
-mod helper;
+elements_for!(Store, Message, Action);
 
 #[test]
 fn simple_node() {
@@ -42,7 +44,7 @@ fn simple_node() {
 fn dynamic_node() {
     let mut store = Store { points: 0 };
 
-    let counter = Template::new(|store: &Store, message| {
+    let counter = Template::new(|store: &Store, message: &Option<Message>| {
         let p = format!("{}", store.points);
         text(p).done()
     });
